@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<!--script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-3.3.0.js"></script-->
+<script src="http://knockoutjs.com/downloads/knockout-3.2.0.js"></script>
+<script language="JavaScript">
+<!--
+// CED subroutine for cleaning up JavaScript rounding errors 
+// to any reasonable number of decimal places 5/5/1997 last mod 2/19/2004
+// round for decimal of (value of precision) places, default is 3
+// This routine can be used to pass a number and a number for precision
+// or just a number only, that is to be rounded to a set number of decimal
+// places. This routine supports leading and training zeros, leading and
+// trailing spaces, and padding. To prevent errors, pass variables as a string.
+/*function perRound(num, precision) {
+        var precision = 3; //default value if not passed from caller, change if desired
+        // remark if passed from caller
+        precision = parseInt(precision); // make certain the decimal precision is an integer
+        var result1 = num * Math.pow(10, precision);
+        var result2 = Math.round(result1);
+        var result3 = result2 / Math.pow(10, precision);
+        return zerosPad(result3, precision);
+}
+*/
+
+function zerosPad(rndVal, decPlaces) {
+        var valStrg = rndVal.toString(); // Convert the number to a string
+        var decLoc = valStrg.indexOf("."); // Locate the decimal point
+        // check for a decimal 
+        if (decLoc == -1) {
+                decPartLen = 0; // If no decimal, then all decimal places will be padded with 0s
+                // If decPlaces is greater than zero, add a decimal point
+                valStrg += decPlaces > 0 ? "." : "";
+        }
+        else {
+                decPartLen = valStrg.length - decLoc - 1; // If there is a decimal already, only the needed decimal places will be padded with 0s
+        }
+        var totalPad = decPlaces - decPartLen;    // Calculate the number of decimal places that need to be padded with 0s
+        if (totalPad > 0) {
+                // Pad the string with 0s
+                for (var cntrVal = 1; cntrVal <= totalPad; cntrVal++) 
+                        valStrg += "0";
+        }
+        return valStrg;
+}
+
+// send the value in as "num" in a variable
+function rhocalc (temp) {                                          //  temp dependent density
+        var rho;
+        temp=parseFloat(temp); //so temp string is accepted
+        rho = 1000*(1.0-(temp+288.9414)/(508929.2*(temp+68.12963))*(Math.pow(temp-3.9863,2)));
+        return rho;
+}
+
+function rhoscalc (rho,conc,temp) {                                //  temp and conc dependent density
+        var rhos, A, B, temp;
+        rho=parseFloat(rho);
+        conc=parseFloat(conc);
+        temp=parseFloat(temp);
+        A = 0.824493 - 0.0040899*temp + 0.000076438*Math.pow(temp,2)-0.00000082467*Math.pow(temp,3) + 0.0000000053675*Math.pow(temp,4);
+        B =  -0.005724 + 0.00010227*temp - 0.0000016546*Math.pow(temp,2);
+        rhos = rho + A*conc + B*Math.pow(conc,(3/2)) + 0.00048314*Math.pow(conc,2);
+        return rhos;
+}     
+</script>
+ 
+<script>
+function createCORSRequest(method, url) {
+var xhr = new XMLHttpRequest();
+        if ("withCredentials" in xhr) {
+                // Check if the XMLHttpRequest object has a "withCredentials" property.
+                // "withCredentials" only exists on XMLHTTPRequest2 objects.
+                xhr.open(method, url, true);
+
+        } else if (typeof XDomainRequest != "undefined") {
+                // Otherwise, check if XDomainRequest.
+                // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+                xhr = new XDomainRequest();
+                xhr.open(method, url);
+
+        } else {
+                // Otherwise, CORS is not supported by the browser.
+                xhr = null;
+
+        }
+        return xhr;
+}
+
+
+
+
+var doRequest=function(){
+        var url = 'http://xml.buienradar.nl';
+        //var luchtdruk="1013";
+        var xhr = createCORSRequest('GET', url);
+        // Response handlers.
+        xhr.onload = function() {
+                var resXML = xhr.responseText;
+                var Amsterdam = resXML.match(/<weerstation id="6240">.*?<\/weerstation>/).toString();
+        
+                viewModel.luchtdruk(Amsterdam.match(/<luchtdruk>(.*?)<\/luchtdruk>/)[1]);
+              //  alert("got:"+viewModel.luchtdruk());
+        };
+
+        xhr.onerror = function() {
+                alert('Woops, there was an error making the request.');
+        };
+        xhr.send();
+}
+var doCopy=function(){
+        var copyTextarea = document.querySelector('#total');
+        
+        copyTextarea.select();
+
+        try {
+                var successful = document.execCommand('copy');
+                var msg = successful ? 'successful' : 'unsuccessful';
+                console.log('Copying text command was ' + msg);
+//                window.getSelection().removeAllRanges();
+        } catch (err) {
+                console.log('Oops, unable to copy');
+        }
+}
+
+//jvar mGrav=9.8123,
+//    mTemp=10,
+function gotChange(from,value){
+
+//var subscCmH2O=viewModel.cc.cmH2O.subscribe(function(value){gotChange("cmH2O",value)});
+//var subscBar=viewModel.cc.bar.subscribe(function(value){gotChange("bar",value)});
+//var subscPressure=viewModel.cc.bar.subscribe(function(value){gotChange("pressure",value)});
+        var oldFrom;
+
+        console.log("from:"+from+", value:"+value+", cc.viewModel.oldFrom:"+viewModel.cc.oldFrom);
+
+        switch(from){
+                case "cmH2O":
+                        //bar/pressure
+                        subscBar.dispose();
+                        viewModel.cc.bar(parseFloat(value/100)*viewModel.cc.pressure());// /100 to meters
+                        subscBar=viewModel.cc.bar.subscribe(function(value){gotChange("bar",value)});
+                        viewModel.cc.oldFrom=from;
+                        break;
+                case "bar":
+                        subscCmH2O.dispose();
+                        viewModel.cc.cmH2O((parseFloat(value)/viewModel.cc.pressure())*100);
+                        subscCmH2O=viewModel.cc.cmH2O.subscribe(function(value){gotChange("cmH2O",value)});
+                        viewModel.cc.oldFrom=from;
+                        break;
+                case "pressure":
+                        //need old value .
+                        if(viewModel.cc.oldFrom==="bar"){
+                                console.log("updateing bar:"+viewModel.cc.bar());
+                                console.log("updateing bar:"+viewModel.cc.cmH2O());
+                                subscCmH2O.dispose();
+                                viewModel.cc.cmH2O((parseFloat(viewModel.cc.bar())/viewModel.cc.pressure())*100);
+                                subscCmH2O=viewModel.cc.cmH2O.subscribe(function(value){gotChange("cmH2O",value)});
+                                //viewModel.cc.bar(0);
+                        }else if(viewModel.cc.oldFrom==="cmH2O"){
+                                subscBar.dispose();
+                                viewModel.cc.bar(parseFloat(viewModel.cc.cmH2O()/100)*viewModel.cc.pressure());
+                                subscBar=viewModel.cc.bar.subscribe(function(value){gotChange("bar",value)});
+                                console.log("updateing cmh2o");
+                        }
+                        break;
+        }
+
+
+}
+
+var CcalcModel=function(){
+        this.temp = ko.observable(12.4);
+        this.gravity = ko.observable(9.8123);
+        this.salinity = ko.observable(0);
+        this.density = ko.observable();
+        this.bar = ko.observable(0);
+        this.cmH2O = ko.observable(0);
+
+        this.density = ko.pureComputed(function(){
+                //depends on temp and salinity
+                var mRho,
+                    mRhos,
+                    mSal;
+                
+                console.log("temp:"+this.temp()); 
+                mSal=this.salinity()/1000;
+                console.log("salinity:"+mSal); 
+                mRho=rhocalc(this.temp());
+                console.log('mRho: '+mRho);
+                mRhos=rhoscalc(mRho,mSal,this.temp());
+                console.log('mRhos: '+mRhos);
+                
+                return mRhos;
+        },this);
+        
+        this.pressure = ko.pureComputed(function(){
+               //depends on density and gravity 
+               return ((this.gravity()*this.density())/100000);
+        },this);
+}
+
+var ViewModel=function(){
+        this.cc=new CcalcModel();
+        this.span1= ko.observable("1000");
+        this.range1= ko.observable("200000");
+        this.offset1=ko.observable("0");
+        this.type1=ko.observable("0");
+        this.gain1=ko.observable("64");
+        this.t_factor1=ko.observable("0");
+        this.enabled1=ko.observable("1");
+        this.sensortype1=ko.observable("56");
+        this.self_cali1=ko.observable("1");
+	    this.span2= ko.observable("1");
+        this.range2= ko.observable("0");
+        this.offset2=ko.observable("0");
+        this.type2=ko.observable("0");
+        this.gain2=ko.observable("64");
+        this.t_factor2=ko.observable("0");
+        this.enabled2=ko.observable("0");
+        this.sensortype2=ko.observable("0");
+        this.self_cali2=ko.observable("0");        
+        this.luchtdruk=ko.observable("10130");
+        this.ellitrack_type=ko.observable("W");
+        this.total = ko.pureComputed(function() {
+                return this.span1()+" "
+                +this.range1()+" "
+        	+this.offset1()+" "
+        	+this.type1()+" "
+        	+this.gain1()+" "
+        	+this.t_factor1()+" "
+        	+this.enabled1()+" "
+        	+this.sensortype1()+" "
+        	+this.self_cali1()+" "
+		+this.span2()+" "
+                +this.range2()+" "
+        	+this.offset2()+" "
+        	+this.type2()+" "
+        	+this.gain2()+" "
+        	+this.t_factor2()+" "
+        	+this.enabled2()+" "
+        	+this.sensortype2()+" "
+        	+this.self_cali2()+" " 
+                +Math.round(parseFloat(this.luchtdruk()*10))+" "
+                +this.ellitrack_type();
+        },this)
+};
+
+</script>
+</head>
+<body>
+<div class="container">
+<div class="jumbotron">
+        <h3>Calibration Rule(z)</h3>
+</div><!--end jumbotron-->
+<div class="row">
+<div id="rowcalc" class="col-md-6">
+<form id="bla">
+<table>
+<tr><td width="180px">span1 (uV/V)</td><td><input data-bind="value: span1"></td></tr>
+<tr><td>range1 (Pa)</td><td><input data-bind="value: range1"></td></tr>
+<tr><td>offset1 (uV/V)</td><td><input data-bind="value: offset1"></td></tr>
+<tr><td>type1 (0=A,1=G)</td><td><input data-bind="value: type1"></td></tr>
+<tr><td>gain1</td><td><input data-bind="value: gain1"></input></td></tr>
+<tr><td>t_factor1</td><td><input data-bind="value: t_factor1"></td></tr>
+<tr><td>enabled1</td><td><input data-bind="value: enabled1"></td></tr>
+<tr><td>span2 (uV/V)</td><td><input data-bind="value: span2"></td></tr>
+<tr><td>range2 (Pa)</td><td><input data-bind="value: range2"></td></tr>
+<tr><td>offset2 (uV/V)</td><td><input data-bind="value: offset2"></td></tr>
+<tr><td>type2 (0=A,1=G)</td><td><input data-bind="value: type2"></td></tr>
+<tr><td>gain2</td><td><input data-bind="value: gain2"></input></td></tr>
+<tr><td>t_factor2</td><td><input data-bind="value: t_factor2"></td></tr>
+<tr><td>enabled2</td><td><input data-bind="value: enabled2"></td></tr>
+<tr><td>luchtdruk</td><td><input data-bind="value: luchtdruk"></td></tr>
+<tr><td>ellitrack_type</td><td><input data-bind="value: ellitrack_type"></td></tr>
+<tr><td colspan=2><input id="total" size="45" data-bind="value: total"</td></tr>
+</table>
+</form>
+<br>
+<button onclick="doRequest()">Haal van buienradar (Schiphol)</button>
+<button id="copy" onclick="doCopy()">copy</button>
+<br>
+<a href="http://xml.buienradar.nl" target="_blank">buienradar.xml</a><br>
+<a href="http://www.buienradar.nl" target="_blank">buienradar</a><br>
+<a href="http://www.knmi.nl/actueel" target="_blank">knmi</a>
+</div><!-- end rowcalc -->
+<div id="convcalc" class="col-md-6">
+        <form id="ccalc">
+                <table>
+                <tr>
+                        <td>temp (&deg;C)</td>
+                        <td>
+                                <input data-bind="value: cc.temp">
+                        </td>
+                </tr>
+                <tr>
+                        <td>salinity (mg/L or PPM)</td>
+                        <td>
+                                <input data-bind="value: cc.salinity">
+                        </td>
+                </tr>
+                <tr>
+                        <td>density (kg/m&sup3;)</td>
+                        <td>
+                                <input data-bind="value: cc.density">
+                        </td>
+                </tr>
+                <tr>
+                        <td>gravity (m/s&sup2;)</td>
+                        <td>
+                                <input data-bind="value: cc.gravity">
+                        </td>
+                </tr>
+                <tr>
+                        <td>pressure (bar/m)</td>
+                        <td>
+                                <input data-bind="value: cc.pressure">
+                        </td>
+                </tr>
+                <tr>
+                        <td colspan="2">&nbsp;</td>
+                </tr>
+                <tr>
+                        <td>cmH2O</td>
+                        <td>
+                                <input data-bind="value: cc.cmH2O">
+                        </td>
+                </tr>
+                <tr>
+                        <td>bar</td>
+                        <td>
+                                <input data-bind="value: cc.bar">
+                        </td>
+                </tr>
+        </form>
+</div><!-- end convcalc -->
+</div><!-- row -->
+</div><!--end container-->
+<script>
+ko.applyBindings(viewModel=new ViewModel());
+var subscCmH2O=viewModel.cc.cmH2O.subscribe(function(value){gotChange("cmH2O",value)});
+var subscBar=viewModel.cc.bar.subscribe(function(value){gotChange("bar",value)});
+var subscPressure=viewModel.cc.pressure.subscribe(function(value){gotChange("pressure",value)});
+</script>
+</body>
+</html>

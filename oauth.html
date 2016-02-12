@@ -3,6 +3,7 @@
     <head>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-7s5uDGW3AHqw6xtJmNNtr+OBRJUlgkNJEo78P4b0yRw= sha512-nNo+yCHEyn0smMxSswnf/OnX6/KwJuZTlNZBjauKhTK0c+zT+q5JOCx0UFhXQ6rJR9jg6Es8gPuD2uZcYDLqSw==" crossorigin="anonymous">
         <script src="./bundle.js" type="text/javascript"></script>
+        <script src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
     </head>
     <body>
     <div class = 'container'>
@@ -52,7 +53,9 @@
         </div>
             <div class='row'>
                 <div class='col-md-12'>
-                    <button data-bind='click: send_req'>send req</button>
+                    <button data-bind='click: send_req'>send req</button><br>
+                    <strong data-bind='text: preferredUsername'>uh</strong><br>
+                    <strong data-bind='text: id'>uh</strong>
                 </div>
             </div>
     </div>
@@ -149,6 +152,10 @@ document.getElementById('authenticate').onclick = function() {
 };*/
 
         function viewModel(){
+            var vm = this;
+            this.co_key = M.ko.observable("aaargh");
+            this.preferredUsername = M.ko.observable("aaargh");
+            this.id = M.ko.observable("aaargh");
             this.co_key = M.ko.observable("aaargh");
             this.gen_key = function(){
                 this.co_key(Math.random(20));
@@ -156,10 +163,58 @@ document.getElementById('authenticate').onclick = function() {
             this.send_req = function(){
                 //auth thing.
                 //authReq('https://pump.kuopzi.nl/api/user/Menno/profile', function(err,res){
+                /*
                 authReq('http://localhost:31337/api/user/Menno/profile', function(err,res){
                     console.log('err:' +err);
                     console.log('res:' +res);
                 });
+                */
+                // for localhost
+                var authObj =  {
+                        consumer_key: "RYfq3UxrgsgZ1x_4RRUiBQ",
+                        consumer_secret: "RjY57ALU7JCQjG1HIxQQlmjqlvzMpVI7nk08Aoocq6Y",
+                        nonce_size: 32,
+                        signature_method: "HMAC-SHA1",
+                        token: "_46KBG5QS9Q72g1cTOf88Q",
+                        token_secret: "lM8e1PAcVgDDq0n6w5hatCP4GoEFjDCTVJYVXiBXJxI",
+                        version: "1.0"
+                    },
+                    url = "http://localhost:31337/api/user/Menno/profile",
+                    url = "http://localhost:31337/api/whoami",
+                    auth = M.oauth.headerGenerator(authObj),
+                    head = auth('GET', url);
+
+
+                    console.log("head: " + head);
+
+                
+                function befSend(xhr){
+                    vm.preferredUsername("...");
+                    console.log("-=-=-=-=-=-=-=-=-=-=-=-=");
+                    console.log("ajax before send");
+                    console.log("url: "+url);
+                    head = auth("GET", url);
+                    console.log(head);
+                    xhr.setRequestHeader("Authorization", head);
+                    console.log("-=-=-=-=-=-=-=-=-=-=-=-=");
+                };
+                
+                $.ajaxSetup({ beforeSend: befSend });
+
+                $.ajax(url).done(function(data) {
+                     console.log('nice');
+                     console.log(data.preferredUsername);
+                     vm.preferredUsername(data.preferredUsername);
+                     vm.id(data.id);
+                     console.log(data.id);
+                 }).error(function(xhr, timeout, message){
+                        console.log("ERROR");
+                        console.log("xhr.status:");
+                        console.log(xhr.status);
+                        vm.preferredUsername(xhr.responseText || "ERROR");
+                        vm.id("");
+                 });
+                 
             }
         }
 

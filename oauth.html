@@ -60,50 +60,8 @@
             </div>
     </div>
     <script type="text/javascript">
-var authObj =  {
-//               consumer_key: "ub2R3gf2lLKwECoV_TMMlA",
-               consumer_key: "RYfq3UxrgsgZ1x_4RRUiBQ",
-//               consumer_secret: "9_v4hNlTl3DQ9RhZ8AioFBfOOn00qV4MbUWPQVtpalo",
-               consumer_secret: "RjY57ALU7JCQjG1HIxQQlmjqlvzMpVI7nk08Aoocq6Y",
 
-               nonce: "qfxMg19gaTsPxzsPBQxjS2wPVJm5Jfcv",
-               nonce_size: 32,
-               signature_method: "HMAC-SHA1",
-               timestamp: "1454878090",
-               token: "Oocb52VLS1485yR1PNpKRw",
-               token_secret: "Cb7k_zZPoKjlFjXf-iqMIeYoWvjGzXlkJQ3UKGsVVt4",
-               version: "1.0"
 
-           }
-
-       var auth = M.oauth.headerGenerator(authObj);
-        console.log(auth);
-       
-        var header = auth('GET', 'https://pump.kuopzi.nl/api/user/Menno/profile'),
-            hsplit = header.split(',');
-        console.log(hsplit);
-        
-        var x = document.getElementById('req_header'),
-            y = document.getElementById('signature'),
-            hsplitHtml="";
-        
-for (var part in hsplit){
-    hsplitHtml += '<pre>';
-    hsplitHtml += hsplit[part].trim();
-    hsplitHtml += '</pre>';
-    console.log(hsplit[part]);
-
-}
-/*
-        var baseString = "GET&https%3A%2F%2Fpump.kuopzi.nl%2Fapi%2Fuser%2FMenno%2Fprofile&oauth_consumer_key%3Dub2R3gf2lLKwECoV_TMMlA%26oauth_nonce%3DqfxMg19gaTsPxzsPBQxjS2wPVJm5Jfcv%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1454878090%26oauth_token%3DOocb52VLS1485yR1PNpKRw%26oauth_version%3D1.0"
-
-        var sig = M.oauth.signature(authObj.consumer_secret, authObj.token_secret, baseString);
-                                  
-        console.log(baseString);
-        console.log(authObj);
-        console.log("sig:" + sig);
- */       
-        x.innerHTML=''+hsplitHtml+'';
 
 /* knockout stuff */
 
